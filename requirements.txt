@@ -2,3 +2,4 @@ Pillow
 cryptography
 bitarray
 pyperclip
+streamlit
