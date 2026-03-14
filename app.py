@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from PIL import Image, ImageTk
+from PIL import Image
 from cryptography.fernet import Fernet
 import pyperclip
 import os
@@ -20,11 +20,23 @@ class SteganographyApp:
         self.tab_control.add(self.decode_tab, text="Decode")
         self.tab_control.pack(expand=1, fill="both")
 
+        self.encode_image_path: str = ""
+        self.decode_image_path: str = ""
+
+        # Declare UI elements
+        self.btn_select_encode_img: tk.Button
+        self.lbl_encode_img_path: tk.Label
+        self.txt_message: tk.Text
+        self.btn_encode: tk.Button
+        
+        self.btn_select_decode_img: tk.Button
+        self.lbl_decode_img_path: tk.Label
+        self.entry_key: tk.Entry
+        self.btn_decode: tk.Button
+        self.txt_decoded: tk.Text
+
         self.setup_encode_tab()
         self.setup_decode_tab()
-
-        self.encode_image_path = None
-        self.decode_image_path = None
 
     # --- ENCODE TAB ---
     def setup_encode_tab(self):
@@ -163,32 +175,32 @@ class SteganographyApp:
             pixels = image.load()
             width, height = image.size
 
-            binary_data = ""
-            for y in range(height):
-                for x in range(width):
-                    r, g, b = pixels[x, y]
-                    binary_data += str(r & 1)
-                    binary_data += str(g & 1)
-                    binary_data += str(b & 1)
-
-            # Convert binary to bytes
-            all_bytes = [binary_data[i: i+8] for i in range(0, len(binary_data), 8)]
             decoded_data = bytearray()
-            
-            # Searching for delimiter
             delimiter = b"###END###"
             delimiter_found = False
             
-            for byte in all_bytes:
-                if len(byte) == 8:
-                    decoded_data.append(int(byte, 2))
-                
-                # Check sliding window for delimiter
-                if len(decoded_data) >= len(delimiter):
-                    if decoded_data[-len(delimiter):] == delimiter:
-                        delimiter_found = True
-                        decoded_data = decoded_data[:-len(delimiter)]
+            binary_buffer = ""
+
+            for y in range(height):
+                if delimiter_found:
+                    break
+                for x in range(width):
+                    if delimiter_found:
                         break
+                    
+                    r, g, b = pixels[x, y]
+                    binary_buffer += str(r & 1) + str(g & 1) + str(b & 1)
+                    
+                    while len(binary_buffer) >= 8:
+                        byte_str = binary_buffer[:8]
+                        binary_buffer = binary_buffer[8:]
+                        decoded_data.append(int(byte_str, 2))
+                        
+                        if len(decoded_data) >= len(delimiter):
+                            if bytes(decoded_data[-len(delimiter):]) == delimiter:
+                                delimiter_found = True
+                                decoded_data = decoded_data[:-len(delimiter)]
+                                break
             
             if not delimiter_found:
                 messagebox.showerror("Error", "No hidden message found in this image, or it is corrupted.")
