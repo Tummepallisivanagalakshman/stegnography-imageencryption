@@ -1,0 +1,4 @@
+Pillow
+cryptography
+bitarray
+pyperclip
